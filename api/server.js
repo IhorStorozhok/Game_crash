@@ -28,7 +28,10 @@ const game = (newConnection) => {
     let index = users.findIndex((el) => {
       return el.user === newConnection;
     });
-    let divisor = (400 / users[index].balance).toFixed();
+    let divisor =
+      (400 / users[index].balance).toFixed() > 10
+        ? 10
+        : (400 / users[index].balance).toFixed();
     multiplier_update = getRandomArbitrary(1, divisor).toFixed(2);
 
     let multiplier_countdownValue = 1;

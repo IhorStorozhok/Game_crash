@@ -28,12 +28,12 @@
       />
       <buttonBet
         class="button"
-        :class="{ activeButton: isInprocess }"
+        v-bind:class="classButtonObject"
+        v-bind="disabledButtonObject"
         v-on:click="
           createBet();
           makeBet();
         "
-        v-bind="{ disabled: (isBetMaked && !isInprocess) || isTaken }"
         :buttonText="buttonText"
       />
     </div>
@@ -58,6 +58,7 @@ export default {
       balance: 100,
       result: "skip",
       multiplier: 1,
+      messageBetValue: 1,
     };
   },
   computed: {
@@ -66,6 +67,20 @@ export default {
         won: this.result === "won",
         lost: this.result === "lost",
         skip: this.result === "skip",
+      };
+    },
+    classButtonObject: function () {
+      return {
+        activeButton: this.isInprocess,
+        clickActiveButton: this.isTaken,
+        clickButton: this.isBetMaked && !this.isInprocess,
+      };
+    },
+    disabledButtonObject: function () {
+      return {
+        disabled:
+          (!this.isInprocess && this.isBetMaked) ||
+          (this.isInprocess && this.isTaken),
       };
     },
     messageObject: function () {
@@ -97,24 +112,29 @@ export default {
       this.isBetMaked = val;
     },
     createBet: function () {
-      const betForSend = { make_bet: this.bet.betValue };
-      this.bet.betValue = "";
-      this.betForSend = betForSend;
+      if (!this.isInprocess && !this.isBetMaked) {
+        const betForSend = { make_bet: this.bet.betValue };
+        this.bet.betValue = "";
+        this.betForSend = betForSend;
+      }
     },
     makeBet() {
-      if (!this.isInprocess) {
+      if (!this.isInprocess && !this.isBetMaked) {
         this.isBetMaked = true;
         let validatedBet = Number(this.betForSend.make_bet);
-        if (validatedBet <= this.balance) {
+        console.log(this.betForSend.make_bet);
+        if (validatedBet <= this.balance && validatedBet > 0) {
           const message = JSON.stringify(this.betForSend);
           this.sendMessage(message);
         } else {
           alert("Incorrect bet value");
         }
       } else {
-        const message = JSON.stringify({ name: "take" });
-        this.sendMessage(message);
-        this.isTaken = true;
+        if (this.isTaken === false) {
+          const message = JSON.stringify({ name: "take" });
+          this.sendMessage(message);
+          this.isTaken = true;
+        }
       }
     },
   },
@@ -135,15 +155,9 @@ export default {
       if (data.name === "multiplier_countdownValue") {
         this.changeMultiplierCountdown(data.value);
         data.isInprocess && this.changeisInprocessStatus(true);
-        if (data.betMakedReset) {
-          this.changeIsBetMaked(false);
-          this.isTaken = false;
-        }
+
         if (data.isInprocess) {
           this.buttonText = "TAKE";
-        }
-        if (data.betMakedReset) {
-          this.buttonText = "PLACE A BET";
         }
       }
       if (data.name === "updated_balance") {
@@ -154,6 +168,10 @@ export default {
       }
       if (data.name === "finish") {
         this.result = "";
+        this.isTaken = false;
+        this.bet = { betValue: "" };
+        this.isBetMaked = false;
+        this.buttonText = "PLACE A BET";
       }
     };
   },
@@ -291,6 +309,14 @@ body {
       color: rgba(255, 255, 255, 0.4);
     }
   }
+}
+
+.clickActiveButton {
+  opacity: 0.5;
+}
+
+.clickButton {
+  opacity: 0.5;
 }
 .button {
   font-family: "Roboto";
